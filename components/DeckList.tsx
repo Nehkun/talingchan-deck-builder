@@ -36,37 +36,52 @@ export default function DeckList({ deckCards, onRemoveCard, getCardCount, onClea
   onClearDeck: () => void;
 }) {
   const { playerName, deckName, setPlayerName, setDeckName } = useDeckStore();
+  
   const uniqueCards = deckCards.reduce((acc, current) => { if (!acc.find(item => item.RuleName === current.RuleName)) { acc.push(current); } return acc; }, [] as Card[]);
   const only1Card = uniqueCards.find(c => c.Ex?.toLowerCase().includes('only#1'));
   const avatarCards = uniqueCards.filter(c => c.Type === 'Avatar' && !c.Ex?.toLowerCase().includes('only#1'));
   const magicCards = uniqueCards.filter(c => c.Type === 'Magic');
   const constructCards = uniqueCards.filter(c => c.Type === 'Construct');
   const lifeCards = uniqueCards.filter(c => c.Type?.toLowerCase().includes('life'));
-  const totalCards = deckCards.length;
-  const lifeCardCount = deckCards.filter(c => c.Type?.toLowerCase().includes('life')).length;
-  const hasOnly1 = deckCards.some(c => c.Ex?.toLowerCase().includes('only#1'));
+
+  // --- ✨ LOGIC การนับและตรวจสอบที่แก้ไขใหม่ ---
+  const mainDeckCards = deckCards.filter(c => !c.Type?.toLowerCase().includes('life'));
+  const mainDeckCount = mainDeckCards.length;
+  const lifeCardCount = deckCards.length - mainDeckCount;
+  const hasOnly1 = mainDeckCards.some(c => c.Ex?.toLowerCase().includes('only#1'));
+
   const deckErrors: string[] = [];
-  if (totalCards !== 50) deckErrors.push(`- Deck must have 50 cards (${totalCards}/50)`);
+  if (mainDeckCount !== 50) deckErrors.push(`- Main Deck must have 50 cards (${mainDeckCount}/50)`);
   if (lifeCardCount !== 5) deckErrors.push(`- Must have 5 Life cards (${lifeCardCount}/5)`);
-  if (!hasOnly1) deckErrors.push("- Missing an 'Only#1' card");
+  if (!hasOnly1) deckErrors.push("- Missing an 'Only#1' card from Main Deck");
   const isDeckValid = deckErrors.length === 0;
+  
+  const progressPercentage = Math.min((mainDeckCount / 50) * 100, 100);
+
   const handleClearDeck = () => { if (window.confirm("Are you sure?")) { onClearDeck(); } };
-  const progressPercentage = Math.min((totalCards / 50) * 100, 100);
 
   return (
     <div className="bg-brand-surface h-full flex flex-col">
       <div className="p-4 border-b border-brand-surface-light">
         <div className="flex justify-between items-center"><h2 className="text-xl font-bold">Your Deck</h2>{deckCards.length > 0 && <button onClick={handleClearDeck} className="bg-brand-danger text-white text-xs px-2 py-1 rounded hover:opacity-80">Clear All</button>}</div>
-        <p className={`text-lg font-semibold ${totalCards === 50 ? 'text-green-400' : 'text-brand-primary'}`}>{totalCards} / 50 Cards</p>
-        <div className="w-full bg-brand-surface-light rounded-full h-2 mt-2"><div className="bg-brand-primary h-2 rounded-full transition-all duration-300" style={{ width: `${progressPercentage}%` }}></div></div>
+        
+        {/* --- ✨ ส่วนแสดงผลที่แก้ไขใหม่ --- */}
+        <div className="mt-2 space-y-1">
+            <p className={`text-md font-semibold ${mainDeckCount === 50 ? 'text-green-400' : 'text-brand-primary'}`}>Main Deck: {mainDeckCount} / 50</p>
+            <div className="w-full bg-brand-surface-light rounded-full h-2"><div className="bg-brand-primary h-2 rounded-full transition-all" style={{ width: `${progressPercentage}%` }}></div></div>
+            <p className={`text-sm font-semibold ${lifeCardCount === 5 ? 'text-green-400' : 'text-brand-secondary'}`}>Life Cards: {lifeCardCount} / 5</p>
+        </div>
       </div>
+      
       <div className="p-4 border-b border-brand-surface-light space-y-2">
         <input type="text" placeholder="Player Name" className="w-full p-2 bg-brand-bg border border-brand-surface-light rounded-md text-sm" value={playerName} onChange={(e) => setPlayerName(e.target.value)} />
         <input type="text" placeholder="Deck Name" className="w-full p-2 bg-brand-bg border border-brand-surface-light rounded-md text-sm" value={deckName} onChange={(e) => setDeckName(e.target.value)} />
       </div>
+      
       <div className="flex-1 overflow-y-auto">
         {uniqueCards.length === 0 ? <p className="p-4 text-gray-400">Click a card to add it.</p> : <div>{only1Card && <CardCategory title="Only#1" cards={[only1Card]} onRemoveCard={onRemoveCard} getCardCount={getCardCount} />} <CardCategory title="Avatar" cards={avatarCards} onRemoveCard={onRemoveCard} getCardCount={getCardCount} /> <CardCategory title="Magic" cards={magicCards} onRemoveCard={onRemoveCard} getCardCount={getCardCount} /> <CardCategory title="Construct" cards={constructCards} onRemoveCard={onRemoveCard} getCardCount={getCardCount} /> <CardCategory title="Life" cards={lifeCards} onRemoveCard={onRemoveCard} getCardCount={getCardCount} /></div>}
       </div>
+      
       <div className="p-4 border-t border-brand-surface-light mt-auto bg-brand-bg">
         <h3 className="font-bold mb-2">Deck Status</h3>
         {deckErrors.length > 0 ? <div className="text-brand-danger text-sm space-y-1">{deckErrors.map(error => <p key={error}>{error}</p>)}</div> : <p className="text-green-400 text-sm font-semibold">✅ Deck is valid!</p>}

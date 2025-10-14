@@ -25,11 +25,24 @@ export const useDeckStore = create(
       
       addCard: (cardToAdd, banlist) => {
         const { cards, getCardCount } = get();
+        const isLifeCard = cardToAdd.Type?.toLowerCase().includes('life');
 
-        if (cards.length >= 50) {
-          toast.error("Your deck is full (50 cards maximum).");
-          return;
+        // --- ✨ LOGIC ที่แก้ไขใหม่ ---
+        const mainDeckCount = cards.filter(c => !c.Type?.toLowerCase().includes('life')).length;
+        const lifeCardCount = cards.filter(c => c.Type?.toLowerCase().includes('life')).length;
+
+        if (isLifeCard) {
+          if (lifeCardCount >= 5) {
+            toast.error("You cannot have more than 5 Life cards.");
+            return;
+          }
+        } else {
+          if (mainDeckCount >= 50) {
+            toast.error("Your main deck is full (50 cards maximum).");
+            return;
+          }
         }
+        // -------------------------
 
         const banlistEntry = banlist.find(entry => entry.RuleName === cardToAdd.RuleName);
         if (banlistEntry) {
@@ -40,16 +53,10 @@ export const useDeckStore = create(
           }
         }
 
-        const isLifeCard = cardToAdd.Type?.toLowerCase().includes('life');
         const isOnly1Card = cardToAdd.Ex?.toLowerCase().includes('only#1');
-
         if (isLifeCard) {
           if (cards.some(c => c.Type?.toLowerCase().includes('life') && c.RuleName === cardToAdd.RuleName)) {
             toast.error("You cannot have duplicate Life cards.");
-            return;
-          }
-          if (cards.filter(c => c.Type?.toLowerCase().includes('life')).length >= 5) {
-            toast.error("You cannot have more than 5 Life cards.");
             return;
           }
         }
@@ -83,9 +90,7 @@ export const useDeckStore = create(
         });
         toast.error(`Removed ${cardName}`);
       },
-
       getCardCount: (ruleName) => get().cards.filter(c => c.RuleName === ruleName).length,
-      
       clearDeck: () => {
         set({ cards: [], playerName: "", deckName: "" });
         toast('Deck cleared!', { icon: '🗑️' });
