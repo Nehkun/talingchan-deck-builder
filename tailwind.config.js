@@ -8,12 +8,14 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'brand-bg': '#111827',      // สีพื้นหลังหลัก (เทาเข้ม-น้ำเงิน)
-        'brand-surface': '#1F2937', // สีพื้นผิวของ component (เทาเข้ม)
-        'brand-surface-light': '#374151', // สีพื้นผิวสว่าง (สำหรับ hover)
-        'brand-primary': '#FBBF24', // สีหลักสำหรับเน้น (สีเหลืองอำพัน)
-        'brand-secondary': '#38BDF8', // สีรอง (สีฟ้า)
-        'brand-danger': '#F87171',   // สีสำหรับแจ้งเตือน/ลบ (สีแดง)
+        'brand-bg': '#0D1117',        // พื้นหลังหลัก (ดำ)
+        'brand-surface': '#161B22',   // พื้นผิว component (เทาเข้ม)
+        'brand-border': '#30363D',    // สีขอบ (เทา)
+        'brand-primary': '#F7B32B',   // สีหลัก (เหลืองทอง)
+        'brand-secondary': '#38BDF8',  // สีรอง (ฟ้า)
+        'brand-danger': '#E54B4B',     // สีสำหรับลบ (แดง)
+        'brand-text': '#C9D1D9',       // สีข้อความหลัก (ขาวนวล)
+        'brand-text-muted': '#8B949E', // สีข้อความรอง (เทา)
       },
     },
   },
