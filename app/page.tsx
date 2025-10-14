@@ -79,17 +79,31 @@ export default function HomePage() {
           <div className="overflow-y-auto">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {filteredCards.map((card, index) => {
+                // --- ✨ LOGIC การ isDisabled ที่แก้ไขใหม่ทั้งหมด ---
                 const count = getCardCount(card.RuleName);
-                const lifeCount = deckCards.filter(c => c.Type?.toLowerCase().includes('life')).length;
-                const hasOnly1 = deckCards.some(c => c.Ex?.toLowerCase().includes('only#1'));
                 const isLifeCard = card.Type?.toLowerCase().includes('life');
                 const isOnly1Card = card.Ex?.toLowerCase().includes('only#1');
-                let isDisabled = deckCards.length >= 50;
+
+                // คำนวณจำนวนการ์ดในเด็คปัจจุบัน
+                const mainDeckCount = deckCards.filter(c => !c.Type?.toLowerCase().includes('life')).length;
+                const lifeCount = deckCards.filter(c => c.Type?.toLowerCase().includes('life')).length;
+                const hasOnly1 = deckCards.some(c => c.Ex?.toLowerCase().includes('only#1'));
+
+                let isDisabled = false;
+                if (isLifeCard) {
+                  // การ์ดนี้เป็น Life: จะ disable ถ้า Life card เต็ม (5 ใบ) หรือมีการ์ดชื่อนี้อยู่แล้ว
+                  isDisabled = lifeCount >= 5 || count > 0;
+                } else {
+                  // การ์ดนี้เป็น Main Deck: จะ disable ถ้า main deck เต็ม (50 ใบ)
+                  isDisabled = mainDeckCount >= 50;
+                }
+                
+                // ตรวจสอบกฎอื่นๆ เพิ่มเติม
                 if (!isDisabled) {
-                    if (isLifeCard && (lifeCount >= 5 || count > 0)) isDisabled = true;
                     if (isOnly1Card && hasOnly1) isDisabled = true;
                     if (!isLifeCard && !isOnly1Card && count >= 4) isDisabled = true;
                 }
+
                 return <CardDisplay key={`${card.RuleName}-${index}`} card={card} onCardClick={handleCardClick} isDisabled={isDisabled} />;
               })}
             </div>

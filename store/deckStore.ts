@@ -25,25 +25,29 @@ export const useDeckStore = create(
       
       addCard: (cardToAdd, banlist) => {
         const { cards, getCardCount } = get();
-        const isLifeCard = cardToAdd.Type?.toLowerCase().includes('life');
+        const isLifeCardToAdd = cardToAdd.Type?.toLowerCase().includes('life');
 
-        // --- ✨ LOGIC ที่แก้ไขใหม่ ---
-        const mainDeckCount = cards.filter(c => !c.Type?.toLowerCase().includes('life')).length;
-        const lifeCardCount = cards.filter(c => c.Type?.toLowerCase().includes('life')).length;
+        // --- ✨ LOGIC ที่แก้ไขใหม่ทั้งหมดให้ถูกต้อง 100% ---
 
-        if (isLifeCard) {
+        // 1. ตรวจสอบโควต้าของเด็คตามประเภทของการ์ดที่จะเพิ่ม
+        if (isLifeCardToAdd) {
+          // ถ้าเป็น Life Card, ให้เช็คโควต้า Life Card (5 ใบ)
+          const lifeCardCount = cards.filter(c => c.Type?.toLowerCase().includes('life')).length;
           if (lifeCardCount >= 5) {
             toast.error("You cannot have more than 5 Life cards.");
-            return;
+            return; // หยุดทำงาน
           }
         } else {
+          // ถ้าไม่ใช่ Life Card (เป็น Main Deck), ให้เช็คโควต้า Main Deck (50 ใบ)
+          const mainDeckCount = cards.filter(c => !c.Type?.toLowerCase().includes('life')).length;
           if (mainDeckCount >= 50) {
             toast.error("Your main deck is full (50 cards maximum).");
-            return;
+            return; // หยุดทำงาน
           }
         }
-        // -------------------------
+        // ----------------------------------------------------
 
+        // 2. ตรวจสอบ Banlist (เหมือนเดิม)
         const banlistEntry = banlist.find(entry => entry.RuleName === cardToAdd.RuleName);
         if (banlistEntry) {
           const currentCount = getCardCount(cardToAdd.RuleName);
@@ -53,8 +57,9 @@ export const useDeckStore = create(
           }
         }
 
+        // 3. ตรวจสอบกฎของเกมอื่นๆ
         const isOnly1Card = cardToAdd.Ex?.toLowerCase().includes('only#1');
-        if (isLifeCard) {
+        if (isLifeCardToAdd) {
           if (cards.some(c => c.Type?.toLowerCase().includes('life') && c.RuleName === cardToAdd.RuleName)) {
             toast.error("You cannot have duplicate Life cards.");
             return;
@@ -66,7 +71,7 @@ export const useDeckStore = create(
             toast.error("You can only have one 'Only#1' card.");
             return;
           }
-        } else if (!isLifeCard) {
+        } else if (!isLifeCardToAdd) {
           if (getCardCount(cardToAdd.RuleName) >= 4) {
             toast.error(`Limited to 4 copies of ${cardToAdd.Name}.`);
             return;
