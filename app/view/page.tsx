@@ -15,32 +15,41 @@ const DeckCategoryView = ({ title, cards, getCardCount }: {
 }) => {
   if (!cards || cards.length === 0) return null;
   
+  // คำนวณจำนวนการ์ดทั้งหมดในหมวดหมู่นี้
   const totalInCategory = cards.reduce((sum, card) => sum + getCardCount(card.RuleName), 0);
 
   return (
-    <div className="mb-6">
-      <h3 className="text-xl font-bold text-brand-primary border-b-2 border-brand-surface-light pb-2 mb-4">
+    <section className="mb-8">
+      <h3 className="text-2xl font-bold text-accent-primary border-b-2 border-dark-border pb-2 mb-4">
         {title} ({totalInCategory})
       </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {cards.sort((a,b) => a.Name.localeCompare(b.Name)).map(card => (
-          <div key={card.RuleName} className="relative">
-            {/* Badge แสดงจำนวนการ์ด */}
-            <div className="absolute top-2 right-2 z-10 bg-brand-bg bg-opacity-80 text-white text-sm font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-brand-primary">
-              x{getCardCount(card.RuleName)}
-            </div>
-            {/* รูปภาพการ์ด */}
+          // --- ✨ การ์ดแต่ละใบถูกจัดให้อยู่ใน div ที่เป็น flex column ---
+          <div key={card.RuleName} className="flex flex-col items-center">
+            {/* รูปภาพการ์ด (ไม่มี Badge จำนวนการ์ดแล้ว) */}
             {card.Image ? (
-               <Image src={card.Image} alt={card.Name} width={300} height={420} className="rounded-lg shadow-lg" />
+               <Image 
+                 src={card.Image} 
+                 alt={card.Name} 
+                 width={300} 
+                 height={420} 
+                 className="rounded-lg shadow-lg border-4 border-card-border w-full h-auto object-cover" // เพิ่ม w-full h-auto object-cover
+               />
             ) : (
-              <div className="aspect-[3/4] bg-brand-surface rounded-lg flex items-center justify-center text-center p-2">
-                <p className="text-white text-sm">{card.Name}</p>
+              <div className="aspect-[3/4] bg-dark-surface rounded-lg flex items-center justify-center text-center p-2 border-4 border-dark-border w-full">
+                <p className="text-text-main text-sm">{card.Name}</p>
               </div>
             )}
+             {/* --- ✨ ชื่อการ์ดและจำนวนการ์ดอยู่ด้านล่างรูปภาพ --- */}
+            <div className="mt-2 text-center">
+                <p className="text-text-main font-semibold text-base leading-tight">{card.Name}</p>
+                <p className="text-text-muted text-sm mt-1">x{getCardCount(card.RuleName)}</p>
+            </div>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 };
 
@@ -50,7 +59,9 @@ export default function ViewPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (cards.length === 0) router.push('/');
+    if (cards.length === 0) {
+      router.push('/');
+    }
   }, [cards, router]);
   
   const { only1Card, avatarCards, magicCards, constructCards, lifeCards } = useMemo(() => {
@@ -64,18 +75,23 @@ export default function ViewPage() {
     };
   }, [cards]);
 
-  if (cards.length === 0) return <div className="p-8 bg-brand-bg text-white">Redirecting...</div>;
+  if (cards.length === 0) {
+    return <div className="p-8 bg-dark-bg text-text-main text-center">Redirecting to editor...</div>;
+  }
 
   return (
-    <div className="bg-brand-bg text-white min-h-screen p-4 sm:p-8">
-      <div className="max-w-5xl mx-auto">
-        <header className="text-center mb-6">
-          <h1 className="text-4xl font-bold text-brand-primary">{deckName || "Untitled Deck"}</h1>
-          <h2 className="text-2xl text-gray-300">by {playerName || "Anonymous"}</h2>
+    <div className="bg-dark-bg text-text-main min-h-screen p-4 sm:p-8">
+      <div className="max-w-6xl mx-auto">
+        <header className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-accent-primary">{deckName || "Untitled Deck"}</h1>
+          <h2 className="text-xl text-text-muted">by {playerName || "Anonymous"}</h2>
         </header>
         
-        <div className="mb-6 text-center">
-            <button onClick={() => router.push('/')} className="bg-brand-surface hover:bg-brand-surface-light text-white px-6 py-2 rounded-lg transition-colors">
+        <div className="mb-8 text-center">
+            <button 
+              onClick={() => router.push('/')} 
+              className="bg-dark-surface hover:bg-dark-border text-text-main px-6 py-2 rounded-lg transition-colors font-semibold"
+            >
               ← Back to Editor
             </button>
         </div>
