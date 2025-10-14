@@ -6,30 +6,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { Card } from "@/lib/googleSheets";
 
-// Component for displaying each category of cards
-const PrintCategory = ({ title, cards, getCardCount }: {
-  title: string;
-  cards: Card[];
-  getCardCount: (ruleName: string) => number;
-}) => {
-  if (!cards || cards.length === 0) return null;
-  
-  const totalInCategory = cards.reduce((sum, card) => sum + getCardCount(card.RuleName), 0);
-
-  return (
-    <div className="mb-4 break-inside-avoid">
-      <h3 className="text-md font-semibold border-b-2 border-gray-300 pb-1 mb-2">{title} ({totalInCategory})</h3>
-      <div className="space-y-1">
-        {cards.sort((a,b) => a.Name.localeCompare(b.Name)).map(card => (
-          <div key={card.RuleName} className="grid grid-cols-[1fr_auto] gap-x-4 text-sm">
-            <span>{card.Name}</span>
-            <span className="font-mono text-right">x{getCardCount(card.RuleName)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+// --- Component ย่อยสำหรับสร้างแถวว่างๆ ---
+const EmptyRow = () => (
+  <>
+    <div className="border border-black h-7">&nbsp;</div>
+    <div className="border border-black h-7">&nbsp;</div>
+  </>
+);
 
 export default function PrintPage() {
   const { cards, playerName, deckName, getCardCount } = useDeckStore();
@@ -38,68 +21,138 @@ export default function PrintPage() {
   useEffect(() => {
     if (cards.length === 0) router.push('/');
   }, [cards, router]);
-  
-  const { only1Card, avatarCards, magicCards, constructCards, lifeCards } = useMemo(() => {
+
+  // --- จัดหมวดหมู่การ์ด (Logic เดิม) ---
+  const { mainDeckAvatars, magicCards, constructCards, lifeCards } = useMemo(() => {
     const uniqueCards = Array.from(new Map(cards.map(card => [card.RuleName, card])).values());
+    const only1 = uniqueCards.find(c => c.Ex?.toLowerCase().includes('only#1'));
+    const avatars = uniqueCards.filter(c => c.Type === 'Avatar' && !c.Ex?.toLowerCase().includes('only#1'));
     return {
-      only1Card: uniqueCards.find(c => c.Ex?.toLowerCase().includes('only#1')),
-      avatarCards: uniqueCards.filter(c => c.Type === 'Avatar' && !c.Ex?.toLowerCase().includes('only#1')),
-      magicCards: uniqueCards.filter(c => c.Type === 'Magic'),
-      constructCards: uniqueCards.filter(c => c.Type === 'Construct'),
-      lifeCards: uniqueCards.filter(c => c.Type?.toLowerCase().includes('life')),
+      mainDeckAvatars: (only1 ? [only1] : []).concat(avatars).sort((a, b) => a.Name.localeCompare(b.Name)),
+      magicCards: uniqueCards.filter(c => c.Type === 'Magic').sort((a, b) => a.Name.localeCompare(b.Name)),
+      constructCards: uniqueCards.filter(c => c.Type === 'Construct').sort((a, b) => a.Name.localeCompare(b.Name)),
+      lifeCards: uniqueCards.filter(c => c.Type?.toLowerCase().includes('life')).sort((a, b) => a.Name.localeCompare(b.Name)),
     };
   }, [cards]);
 
-  if (cards.length === 0) return <div className="p-8">Redirecting...</div>;
+  if (cards.length === 0) return null;
+
+  // --- สร้างแถวสำหรับแต่ละหมวดหมู่ ---
+  const avatarRows = Array.from({ length: 18 }, (_, i) => mainDeckAvatars[i]);
+  const magicRows = Array.from({ length: 13 }, (_, i) => magicCards[i]);
+  const constructRows = Array.from({ length: 13 }, (_, i) => constructCards[i]);
+  const lifeRows = Array.from({ length: 5 }, (_, i) => lifeCards[i]);
+
 
   return (
-    <div className="bg-gray-50 text-black min-h-screen">
-      <div className="max-w-4xl mx-auto p-8 border border-gray-300 bg-white shadow-lg">
-        <header className="text-center mb-6">
-          <h1 className="text-4xl font-bold">Battle of Talingchan</h1>
-          <h2 className="text-2xl text-gray-600">Deck Recipe Sheet</h2>
+    <div className="bg-white text-black p-4 font-sans">
+      <div className="max-w-4xl mx-auto border-2 border-black p-2">
+        <header className="text-center mb-2">
+          <h1 className="text-xl font-bold">Battle of Talingchan Deck Recipe</h1>
         </header>
-        
-        <section className="grid grid-cols-2 gap-x-8 mb-6 border-y-2 border-black py-2 text-md">
-          <p><strong>Player Name:</strong> {playerName || "____________________"}</p>
-          <p><strong>Deck Name:</strong> {deckName || "____________________"}</p>
+
+        {/* --- ส่วนข้อมูลผู้เล่น --- */}
+        <section className="grid grid-cols-[1fr_1fr_0.8fr_0.8fr] text-sm mb-2">
+          <div className="border border-black p-1"><strong>ชื่อ-นามสกุล:</strong> {playerName}</div>
+          <div className="border border-black p-1"><strong>Game Name:</strong> {deckName}</div>
+          <div className="border border-black p-1">ลำดับผู้เข้าแข่งขัน</div>
+          <div className="border border-black p-1"></div>
+          <div className="border border-black p-1">ชื่อการแข่งขัน</div>
+          <div className="border border-black p-1"></div>
+          <div className="border border-black p-1">อักษรขึ้นต้นนามสกุล</div>
+          <div className="border border-black p-1"></div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-x-12">
-          {/* Left Column */}
-          <div>
-            {only1Card && <PrintCategory title="Only#1" cards={[only1Card]} getCardCount={getCardCount} />}
-            <PrintCategory title="Avatar" cards={avatarCards} getCardCount={getCardCount} />
+        {/* --- ส่วน Main Deck --- */}
+        <h2 className="text-center font-bold text-md mb-1">Only#1 Main Deck</h2>
+        <section className="grid grid-cols-2 gap-x-[-1px]">
+          {/* คอลัมน์ซ้าย: Avatar */}
+          <div className="grid grid-cols-[1fr_80px] text-sm">
+            <div className="font-bold text-center border border-black">Avatar</div>
+            <div className="font-bold text-center border border-black">จำนวน</div>
+            {avatarRows.map((card, i) =>
+              card ? (
+                <>
+                  <div key={card.RuleName + i} className="border border-black p-1 h-7">{card.Name}</div>
+                  <div className="border border-black p-1 h-7 text-center">{getCardCount(card.RuleName)}</div>
+                </>
+              ) : <EmptyRow key={`empty-avatar-${i}`} />
+            )}
           </div>
-
-          {/* Right Column */}
+          {/* คอลัมน์ขวา: Magic, Construct, Life */}
           <div>
-            <PrintCategory title="Magic" cards={magicCards} getCardCount={getCardCount} />
-            <PrintCategory title="Construct" cards={constructCards} getCardCount={getCardCount} />
+            <div className="grid grid-cols-[1fr_80px] text-sm">
+              <div className="font-bold text-center border border-black">Magic</div>
+              <div className="font-bold text-center border border-black">จำนวน</div>
+              {magicRows.map((card, i) =>
+                card ? (
+                  <>
+                    <div key={card.RuleName + i} className="border border-black p-1 h-7">{card.Name}</div>
+                    <div className="border border-black p-1 h-7 text-center">{getCardCount(card.RuleName)}</div>
+                  </>
+                ) : <EmptyRow key={`empty-magic-${i}`} />
+              )}
+            </div>
+            <div className="grid grid-cols-[1fr_80px] text-sm mt-[-1px]">
+              <div className="font-bold text-center border border-black">Construct</div>
+              <div className="font-bold text-center border border-black">จำนวน</div>
+              {constructRows.map((card, i) =>
+                card ? (
+                  <>
+                    <div key={card.RuleName + i} className="border border-black p-1 h-7">{card.Name}</div>
+                    <div className="border border-black p-1 h-7 text-center">{getCardCount(card.RuleName)}</div>
+                  </>
+                ) : <EmptyRow key={`empty-construct-${i}`} />
+              )}
+            </div>
+            <div className="grid grid-cols-1 text-sm mt-[-1px]">
+               {lifeRows.map((card, i) =>
+                card ? (
+                  <div key={card.RuleName + i} className="grid grid-cols-[1fr_80px]">
+                    <div className="font-bold text-center border border-black">Life Card</div>
+                    <div className="border border-black p-1 h-7 text-center">{card.Name}</div>
+                  </div>
+                ) : (
+                  <div key={`empty-life-${i}`} className="grid grid-cols-[1fr_80px]">
+                    <div className="font-bold text-center border border-black">Life Card</div>
+                    <div className="border border-black p-1 h-7">&nbsp;</div>
+                  </div>
+                )
+              )}
+            </div>
           </div>
         </section>
-        
-        <section className="mt-4 border-t-2 border-gray-300 pt-4">
-          <PrintCategory title="Life Cards" cards={lifeCards} getCardCount={getCardCount} />
+
+         {/* --- ส่วน Side Deck (แสดงเป็นฟอร์มเปล่า) --- */}
+        <h2 className="text-center font-bold text-md mb-1 mt-2">Side Deck</h2>
+        <section className="grid grid-cols-2 gap-x-[-1px]">
+           <div className="grid grid-cols-[1fr_80px] text-sm">
+              <div className="font-bold text-center border border-black">Avatar Side Deck</div>
+              <div className="font-bold text-center border border-black">จำนวน</div>
+              {Array.from({length: 4}).map((_, i) => <EmptyRow key={`empty-side-avatar-${i}`} />)}
+           </div>
+           <div className="grid grid-cols-[1fr_80px] text-sm">
+              <div className="font-bold text-center border border-black">Magic Side Deck</div>
+              <div className="font-bold text-center border border-black">จำนวน</div>
+              {Array.from({length: 4}).map((_, i) => <EmptyRow key={`empty-side-magic-${i}`} />)}
+           </div>
         </section>
 
-        <footer className="text-center mt-12 no-print">
-            <button onClick={() => window.print()} className="bg-blue-600 text-white px-8 py-2 rounded-lg text-lg hover:bg-blue-700 transition-colors">
-              Print Deck List
-            </button>
-            <button onClick={() => router.push('/')} className="bg-gray-500 text-white px-6 py-2 rounded-lg ml-4 hover:bg-gray-600 transition-colors">
-              Back to Editor
-            </button>
-        </footer>
       </div>
+      <footer className="text-center mt-4 no-print">
+        <button onClick={() => window.print()} className="bg-blue-600 text-white px-8 py-2 rounded-lg text-lg hover:bg-blue-700">
+          Save as PDF / Print
+        </button>
+        <button onClick={() => router.push('/')} className="bg-gray-500 text-white px-6 py-2 rounded-lg ml-4 hover:bg-gray-600">
+          Back to Editor
+        </button>
+      </footer>
       <style jsx global>{`
         @media print {
           .no-print { display: none; }
-          body { background-color: #fff; -webkit-print-color-adjust: exact; }
-          .mx-auto { margin: 0; width: 100%; }
+          body { background-color: #fff; }
+          .p-4 { padding: 0; }
           .max-w-4xl { max-width: 100%; }
-          .p-8 { padding: 0; }
-          .border, .shadow-lg { border: none; box-shadow: none; }
         }
       `}</style>
     </div>
