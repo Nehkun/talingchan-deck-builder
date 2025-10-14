@@ -1,103 +1,104 @@
-import Image from "next/image";
+// /app/page.tsx
+"use client";
 
-export default function Home() {
+import { useEffect, useState, useMemo } from "react";
+import { Card } from "@/lib/googleSheets";
+import { useDeckStore } from "@/store/deckStore";
+import DeckList from "@/components/DeckList";
+import CardDisplay from "@/components/CardDisplay";
+
+interface BanlistEntry { RuleName: string; AllowedCopies: number; }
+
+export default function HomePage() {
+  const [allCards, setAllCards] = useState<Card[]>([]);
+  const [banlist, setBanlist] = useState<BanlistEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedType, setSelectedType] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedSymbol, setSelectedSymbol] = useState("");
+  const [selectedRare, setSelectedRare] = useState("");
+  const [showOnly1, setShowOnly1] = useState(false);
+  const { cards: deckCards, addCard, removeCard, getCardCount, clearDeck } = useDeckStore();
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [cardsRes, banlistRes] = await Promise.all([ fetch('/api/cards'), fetch('/api/banlist') ]);
+        const cards = await cardsRes.json();
+        const banlistData = await banlistRes.json();
+        setAllCards(cards);
+        setBanlist(banlistData);
+      } catch (error) { console.error("Failed to load initial data:", error); }
+      finally { setIsLoading(false); }
+    }
+    fetchData();
+  }, []);
+
+  const handleCardClick = (card: Card) => { addCard(card, banlist); };
+
+  const filterOptions = useMemo(() => {
+    const types = [...new Set(allCards.map(c => c.Type))].filter(Boolean).sort();
+    const colors = [...new Set(allCards.map(c => c.CColor))].filter(Boolean).sort();
+    const symbols = [...new Set(allCards.map(c => c.Symbol))].filter(Boolean).sort();
+    const rares = [...new Set(allCards.map(c => c.Rare))].filter(Boolean).sort();
+    return { types, colors, symbols, rares };
+  }, [allCards]);
+
+  const filteredCards = allCards.filter(card => {
+    return card.Name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (!selectedType || card.Type === selectedType) &&
+      (!selectedColor || card.CColor === selectedColor) &&
+      (!selectedSymbol || card.Symbol === selectedSymbol) &&
+      (!selectedRare || card.Rare === selectedRare) &&
+      (!showOnly1 || card.Ex?.toLowerCase().includes('only#1'));
+  });
+
+  if (isLoading) { return <div className="text-center mt-20 text-white">Loading Card Database...</div>; }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="flex flex-col h-screen bg-brand-bg text-white">
+      <h1 className="text-2xl font-bold p-4 text-center border-b border-brand-surface-light">
+        Battle of Talingchan Deck Builder
+      </h1>
+      <div className="flex flex-1 overflow-hidden">
+        <div className="w-3/4 flex flex-col p-4">
+          <div className="mb-4 space-y-2">
+            <input type="text" placeholder="Search by name..." className="w-full p-2 bg-brand-surface border border-brand-surface-light rounded-lg" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <select onChange={(e) => setSelectedType(e.target.value)} value={selectedType} className="p-2 bg-brand-surface border border-brand-surface-light rounded-lg text-sm"><option value="">All Types</option>{filterOptions.types.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>
+              <select onChange={(e) => setSelectedColor(e.target.value)} value={selectedColor} className="p-2 bg-brand-surface border border-brand-surface-light rounded-lg text-sm"><option value="">All Colors</option>{filterOptions.colors.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>
+              <select onChange={(e) => setSelectedSymbol(e.target.value)} value={selectedSymbol} className="p-2 bg-brand-surface border border-brand-surface-light rounded-lg text-sm"><option value="">All Symbols</option>{filterOptions.symbols.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>
+              <select onChange={(e) => setSelectedRare(e.target.value)} value={selectedRare} className="p-2 bg-brand-surface border border-brand-surface-light rounded-lg text-sm"><option value="">All Rares</option>{filterOptions.rares.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <input type="checkbox" id="only1" checked={showOnly1} onChange={(e) => setShowOnly1(e.target.checked)} className="h-4 w-4 bg-brand-surface border-brand-surface-light rounded" />
+              <label htmlFor="only1" className="text-sm">Show Only#1 Cards</label>
+            </div>
+          </div>
+          <div className="overflow-y-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {filteredCards.map((card, index) => {
+                const count = getCardCount(card.RuleName);
+                const lifeCount = deckCards.filter(c => c.Type?.toLowerCase().includes('life')).length;
+                const hasOnly1 = deckCards.some(c => c.Ex?.toLowerCase().includes('only#1'));
+                const isLifeCard = card.Type?.toLowerCase().includes('life');
+                const isOnly1Card = card.Ex?.toLowerCase().includes('only#1');
+                let isDisabled = deckCards.length >= 50;
+                if (!isDisabled) {
+                    if (isLifeCard && (lifeCount >= 5 || count > 0)) isDisabled = true;
+                    if (isOnly1Card && hasOnly1) isDisabled = true;
+                    if (!isLifeCard && !isOnly1Card && count >= 4) isDisabled = true;
+                }
+                return <CardDisplay key={`${card.RuleName}-${index}`} card={card} onCardClick={handleCardClick} isDisabled={isDisabled} />;
+              })}
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        <div className="w-1/4 border-l border-brand-surface-light flex flex-col">
+          <DeckList deckCards={deckCards} onRemoveCard={removeCard} getCardCount={getCardCount} onClearDeck={clearDeck} />
+        </div>
+      </div>
+    </main>
   );
 }
