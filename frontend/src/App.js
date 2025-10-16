@@ -401,7 +401,7 @@ function App() {
 
             {/* --- NEW: ปุ่ม Export PDF --- */}
             <div className="deck-actions">
-              <button onClick={handleExportTournamentPDF} className="export-pdf-btn">
+              <button onClick={handleExportTournamentPDF} className="export-pdf-btn" disabled>
                 Export PDF for Tournament 📜
               </button>
             </div>

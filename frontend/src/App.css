@@ -397,3 +397,9 @@ body {
 .deck-actions {
   margin-bottom: 10px; /* ลดระยะห่างเล็กน้อย */
 }
+.export-pdf-btn:disabled {
+  background-color: #555;
+  border-color: #444;
+  color: #888;
+  cursor: not-allowed;
+}
