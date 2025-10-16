@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'; // เพิ่ม useRef
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
-import html2canvas from 'html2canvas'; // Import library ใหม่
+import html2canvas from 'html2canvas';
 import './App.css';
 
 // --- ค่าคงที่สำหรับกฎของเกม ---
@@ -18,10 +18,8 @@ function App() {
   const [isFilterVisible, setIsFilterVisible] = useState(true);
   const [isDeckListVisible, setIsDeckListVisible] = useState(true);
 
-  // --- NEW: State สำหรับเก็บชื่อเด็ค ---
   const [deckName, setDeckName] = useState('');
   
-  // --- NEW: Ref สำหรับชี้ไปยัง div ของ Deck List ที่เราจะถ่ายรูป ---
   const deckListRef = useRef(null);
 
   const [filters, setFilters] = useState({
@@ -225,6 +223,7 @@ function App() {
     );
   };
   
+  // --- REVISED: นำฟังก์ชัน Clear All กลับมา ---
   const clearAllDecks = () => {
     if (window.confirm("คุณต้องการล้างเด็คทั้งหมดใช่หรือไม่?")) {
       setMainDeck([]);
@@ -232,7 +231,6 @@ function App() {
     }
   };
 
-  // --- NEW: ฟังก์ชันสำหรับ Export รูปภาพ ---
   const handleExportImage = () => {
     const element = deckListRef.current;
     if (!element) return;
@@ -240,15 +238,13 @@ function App() {
         alert('กรุณากรอกชื่อเด็คก่อน Export');
         return;
     }
-
     html2canvas(element, {
-      backgroundColor: '#1e1e1e', // กำหนดสีพื้นหลังให้ตรงกับธีม
-      useCORS: true // อนุญาตให้โหลดรูปภาพจาก Cloudinary
+      backgroundColor: '#1e1e1e',
+      useCORS: true 
     }).then((canvas) => {
       const image = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       link.href = image;
-      // ตั้งชื่อไฟล์ตาม Deck Name
       link.download = `decklist-${deckName.replace(/\s+/g, '_')}.png`;
       link.click();
     });
@@ -256,64 +252,65 @@ function App() {
 
   const mainDeckTotal = mainDeck.reduce((total, card) => total + card.count, 0);
   
-  const renderGroupedDeck = () => {
-    const grouped = mainDeck.reduce((acc, card) => {
+  const getGroupedDeck = () => {
+    return mainDeck.reduce((acc, card) => {
+      let group = 'Other';
       if (card.is_only_one) {
-        if (!acc['Only#1']) acc['Only#1'] = [];
-        acc['Only#1'].push(card);
-        return acc;
+        group = 'Only#1';
+      } else if (card.Type) {
+        group = card.Type;
       }
-      const type = card.Type || 'Other';
-      if (!acc[type]) {
-        acc[type] = [];
+      
+      if (!acc[group]) {
+        acc[group] = [];
       }
-      acc[type].push(card);
+      acc[group].push(card);
       return acc;
     }, {});
+  };
 
-    const groupOrder = ['Only#1', 'Avatar', 'Magic', 'Construct'];
+  const groupedDeckData = getGroupedDeck();
+  const groupOrder = ['Only#1', 'Avatar', 'Magic', 'Construct'];
 
-    return groupOrder.map(groupName => {
-      if (!grouped[groupName] || grouped[groupName].length === 0) return null;
-      
-      const groupTotal = grouped[groupName].reduce((total, card) => total + card.count, 0);
+  const renderCardGroup = (groupName, isPrintable = false) => {
+    const groupCards = groupedDeckData[groupName];
+    if (!groupCards || groupCards.length === 0) return null;
 
-      return (
-        <div key={groupName} className="deck-card-group">
-          <h4 className="group-header">{groupName} ({groupTotal})</h4>
-          {grouped[groupName].map((card, index) => (
-            <div key={`${card.RuleName}-${index}`} className="deck-card-item">
-              {card.image_url && <img src={card.image_url} alt={card.Name} className="deck-card-thumbnail" />}
-              <span className="deck-card-count">x{card.count}</span>
-              <span className="deck-card-name">{card.Name}</span>
+    const groupTotal = groupCards.reduce((total, card) => total + card.count, 0);
+
+    return (
+      <div key={groupName} className="deck-card-group">
+        <h4 className="group-header">{groupName} ({groupTotal})</h4>
+        {groupCards.map((card, index) => (
+          <div key={`${card.RuleName}-${index}`} className="deck-card-item">
+            {card.image_url && <img src={card.image_url} alt={card.Name} className="deck-card-thumbnail" />}
+            <span className="deck-card-count">x{card.count}</span>
+            <span className="deck-card-name">{card.Name}</span>
+            {!isPrintable && (
               <button onClick={() => removeCardFromMainDeck(card)} className="delete-card-btn">
                 🗑️
               </button>
-            </div>
-          ))}
-        </div>
-      );
-    });
+            )}
+          </div>
+        ))}
+      </div>
+    );
   };
-
+  
   return (
     <div className="app-container">
       <div className="main-content">
         
         <div className={`filter-wrapper ${isFilterVisible ? 'visible' : 'hidden'}`}>
-            <h2 className="filter-main-title">Filter Options</h2>
-            <div className="filter-panel">
+          <h2 className="filter-main-title">Filter Options</h2>
+          <div className="filter-panel">
             {Object.entries(filterOptions).map(([category, options]) => (
               <div key={category} className="filter-group">
                 <h3 className="filter-title">{category}</h3>
                 <div className="filter-options">
                   {options.map(option => (
                     <label key={option} className="filter-label">
-                      <input
-                        type="checkbox"
-                        checked={filters[category].includes(option)}
-                        onChange={() => handleFilterChange(category, option)}
-                      />
+                      <input type="checkbox" checked={filters[category].includes(option)} onChange={() => handleFilterChange(category, option)} />
                       {option}
                     </label>
                   ))}
@@ -325,34 +322,16 @@ function App() {
 
         <div className="card-gallery-wrapper">
           <header className="app-header">
-            <button 
-              className="filter-toggle-btn" 
-              onClick={() => setIsFilterVisible(!isFilterVisible)}
-            >
+            <button className="filter-toggle-btn" onClick={() => setIsFilterVisible(!isFilterVisible)}>
               {isFilterVisible ? '❮' : '❯'}
             </button>
             <h1>Battle of Talingchan Deck Builder</h1>
-            <input
-              type="text"
-              placeholder="ค้นหาการ์ดด้วยชื่อ..."
-              className="search-bar"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <input type="text" placeholder="ค้นหาการ์ดด้วยชื่อ..." className="search-bar" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </header>
-          
           <main className="card-gallery">
             {loading ? <p>Loading cards...</p> : (
               filteredCards.map((card, index) => (
-                <div 
-                  key={`${card.RuleName}-${index}`} 
-                  className="card-container" 
-                  onClick={() => addCardToDeck(card)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    addCardToLifeDeck(card);
-                  }}
-                >
+                <div key={`${card.RuleName}-${index}`} className="card-container" onClick={() => addCardToDeck(card)} onContextMenu={(e) => { e.preventDefault(); addCardToLifeDeck(card); }}>
                   <img src={card.image_url} alt={card.Name} className="card-image" />
                 </div>
               ))
@@ -360,41 +339,28 @@ function App() {
           </main>
         </div>
 
-        {/* ---- REVISED: เพิ่ม ref และ div ครอบสำหรับถ่ายรูป ---- */}
         <div className={`deck-list-wrapper ${isDeckListVisible ? 'visible' : 'hidden'}`}>
-          <button 
-            className="decklist-toggle-btn" 
-            onClick={() => setIsDeckListVisible(!isDeckListVisible)}
-          >
+          <button className="decklist-toggle-btn" onClick={() => setIsDeckListVisible(!isDeckListVisible)}>
             {isDeckListVisible ? '❯' : '❮'}
           </button>
           
-          {/* --- div ที่จะถูกถ่ายรูป --- */}
-          <div className="deck-list-printable-area" ref={deckListRef}>
-            <input 
-              type="text"
-              className="deck-name-input"
-              placeholder="กรอกชื่อเด็ค..."
-              value={deckName}
-              onChange={(e) => setDeckName(e.target.value)}
-            />
+          <div className="deck-list-content">
+            <input type="text" className="deck-name-input" placeholder="กรอกชื่อเด็ค..." value={deckName} onChange={(e) => setDeckName(e.target.value)} />
+            {/* --- REVISED: นำปุ่ม Clear All กลับมา --- */}
             <div className="deck-actions">
               <button onClick={clearAllDecks} className="clear-deck-btn">
                 Clear All 🗑️
               </button>
-              {/* --- NEW: ปุ่ม Export Image --- */}
               <button onClick={handleExportImage} className="export-image-btn">
                 Export Image 📸
               </button>
             </div>
-            
             <div className="deck-section">
               <div className="deck-header">Main Deck ({mainDeckTotal} / {MAIN_DECK_LIMIT})</div>
               <div className="deck-card-list">
-                {renderGroupedDeck()}
+                {groupOrder.map(groupName => renderCardGroup(groupName))}
               </div>
             </div>
-            
             <div className="deck-section">
               <div className="deck-header">Life Deck ({lifeDeck.length} / {LIFE_DECK_LIMIT})</div>
               <div className="deck-card-list">
@@ -403,12 +369,39 @@ function App() {
                     {card.image_url && <img src={card.image_url} alt={card.Name} className="deck-card-thumbnail" />}
                     <span className="deck-card-count">x1</span>
                     <span className="deck-card-name">{card.Name}</span>
-                    <button onClick={() => removeCardFromLifeDeck(card)} className="delete-card-btn hide-on-print">
-                      🗑️
-                    </button>
+                    <button onClick={() => removeCardFromLifeDeck(card)} className="delete-card-btn">🗑️</button>
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ส่วนที่ซ่อนไว้สำหรับสร้างรูปภาพ (ไม่มีการเปลี่ยนแปลง) */}
+      <div className="printable-area-container" ref={deckListRef}>
+        <div className="printable-header">
+          <h2>{deckName || 'Deck List'}</h2>
+        </div>
+        <div className="printable-content-grid">
+          <div className="printable-group-column">
+            {renderCardGroup('Only#1', true)}
+            {renderCardGroup('Avatar', true)}
+          </div>
+          <div className="printable-group-column">
+            {renderCardGroup('Magic', true)}
+            {renderCardGroup('Construct', true)}
+          </div>
+          <div className="printable-group-column">
+            <div className="deck-card-group">
+                <h4 className="group-header">Life Deck ({lifeDeck.length})</h4>
+                {lifeDeck.map((card, index) => (
+                  <div key={`${card.RuleName}-${index}`} className="deck-card-item">
+                    {card.image_url && <img src={card.image_url} alt={card.Name} className="deck-card-thumbnail" />}
+                    <span className="deck-card-count">x1</span>
+                    <span className="deck-card-name">{card.Name}</span>
+                  </div>
+                ))}
             </div>
           </div>
         </div>

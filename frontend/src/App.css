@@ -324,7 +324,7 @@ body {
 }
 
 .export-image-btn {
-  flex-grow: 1;
+  flex: 1;
   padding: 10px 15px;
   font-size: 1rem;
   font-weight: 700;
@@ -335,16 +335,44 @@ body {
   cursor: pointer;
   transition: background-color 0.2s;
 }
+.export-image-btn:hover { background-color: #0069d9; }
 
-.export-image-btn:hover {
-  background-color: #0069d9;
+.deck-section { margin-bottom: 24px; display: flex; flex-direction: column; }
+.deck-header { font-size: 1.3rem; font-weight: 700; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #007bff; color: #007bff; }
+.deck-card-list { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+.deck-card-item { display: flex; align-items: center; background-color: #2a2a2a; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #6c757d; user-select: none; transition: background-color 0.2s, border-color 0.2s; justify-content: space-between; }
+.deck-card-item:hover { background-color: #3a3a3a; border-color: #007bff; }
+.deck-card-thumbnail { width: 30px; height: 30px; border-radius: 4px; object-fit: cover; margin-right: 10px; border: 1px solid #444; }
+.deck-card-count { min-width: 30px; text-align: left; margin-right: 8px; font-weight: 700; color: #ccc; font-size: 1rem; }
+.deck-card-name { flex-grow: 1; font-size: 0.95rem; }
+.delete-card-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #888; padding: 0 5px; opacity: 0.5; transition: opacity 0.2s, transform 0.2s; }
+.deck-card-item:hover .delete-card-btn { opacity: 1; }
+.delete-card-btn:hover { color: #dc3545; transform: scale(1.2); }
+.deck-card-group { margin-bottom: 1rem; }
+.group-header { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: #aaa; margin: 0 0 0.5rem 0; padding-left: 0.25rem; }
+
+/* --- สไตล์สำหรับส่วนที่จะ Export เป็นรูปภาพ --- */
+.printable-area-container {
+  position: absolute; left: -9999px; top: auto; width: 1200px; padding: 20px; background-color: #1e1e1e; color: #e0e0e0;
 }
-
-/* --- REVISED: ซ่อนปุ่มลบเมื่ออยู่ในโหมดถ่ายรูป --- */
-.deck-list-printable-area .delete-card-btn {
-  visibility: visible;
+.printable-header {
+  text-align: center; margin-bottom: 20px; border-bottom: 2px solid #007bff;
 }
-
-.deck-list-printable-area.html2canvas-container .delete-card-btn {
-  visibility: hidden; /* ซ่อนปุ่มลบเฉพาะตอนที่ html2canvas ทำงาน */
+.printable-header h2 {
+  margin: 0 0 10px 0; font-size: 2.5rem;
+}
+.printable-content-grid {
+  display: flex; flex-direction: row; gap: 20px; align-items: flex-start;
+}
+.printable-group-column {
+  display: flex; flex-direction: column; gap: 1.5rem; min-width: 280px;
+}
+.printable-area-container .deck-card-item {
+  padding: 10px 12px;
+}
+.printable-area-container .deck-card-thumbnail {
+  width: 40px; height: 40px;
+}
+.printable-area-container .deck-card-name {
+  font-size: 1rem;
 }
