@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react'; // เพิ่ม useRef
 import axios from 'axios';
+import html2canvas from 'html2canvas'; // Import library ใหม่
 import './App.css';
 
 // --- ค่าคงที่สำหรับกฎของเกม ---
@@ -15,9 +16,13 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isFilterVisible, setIsFilterVisible] = useState(true);
+  const [isDeckListVisible, setIsDeckListVisible] = useState(true);
+
+  // --- NEW: State สำหรับเก็บชื่อเด็ค ---
+  const [deckName, setDeckName] = useState('');
   
-  // --- NEW: State สำหรับควบคุมการแสดงผลของ Deck List ---
-  const [isDeckListVisible, setIsDeckListVisible] = useState(true); // เริ่มต้นให้แสดง
+  // --- NEW: Ref สำหรับชี้ไปยัง div ของ Deck List ที่เราจะถ่ายรูป ---
+  const deckListRef = useRef(null);
 
   const [filters, setFilters] = useState({
     Type: [],
@@ -100,22 +105,16 @@ function App() {
   }, [cards, searchTerm, filters]);
 
 
-const addCardToDeck = (cardToAdd) => {
-    // ด่านตรวจที่ 0: ห้าม Life Card เข้า Main Deck
+  const addCardToDeck = (cardToAdd) => {
     const isLifeCard = cardToAdd.Name.includes('_Life') || cardToAdd.RuleName.includes('_Life');
     if (isLifeCard) {
       alert("การ์ดประเภท Life สามารถเพิ่มลงใน Life Deck ได้เท่านั้น (โดยการคลิกขวา)");
       return;
     }
-
-    // --- REVISED: ด่านตรวจพิเศษสำหรับ "เมียพระอิศวร" (เช็คเฉพาะ Avatar) ---
     const MEAR_PRA_ISUAN_RULENAME = 'เมียพระอิศวร';
     const THEP_SYMBOL = 'เทพ';
     const AVATAR_TYPE = 'Avatar';
-
-    // กรณีที่ 1: กำลังจะเพิ่ม "เมียพระอิศวร"
     if (cardToAdd.RuleName === MEAR_PRA_ISUAN_RULENAME) {
-      // เช็คว่าในเด็คมี 'Avatar' ใบอื่นที่ไม่ใช่ Symbol 'เทพ' หรือไม่
       const hasNonThepAvatar = mainDeck.some(
         deckCard => deckCard.Type === AVATAR_TYPE && deckCard.Symbol !== THEP_SYMBOL
       );
@@ -124,19 +123,13 @@ const addCardToDeck = (cardToAdd) => {
         return;
       }
     }
-
-    // กรณีที่ 2: ในเด็คมี "เมียพระอิศวร" อยู่แล้ว และกำลังจะเพิ่ม 'Avatar' ใบอื่น
     const deckHasMearPraIsuan = mainDeck.some(deckCard => deckCard.RuleName === MEAR_PRA_ISUAN_RULENAME);
     if (deckHasMearPraIsuan && cardToAdd.Type === AVATAR_TYPE) {
-      // เช็คว่า 'Avatar' ที่กำลังจะเพิ่มเข้ามา มี Symbol เป็น 'เทพ' หรือไม่
       if (cardToAdd.Symbol !== THEP_SYMBOL) {
         alert("เด็คที่มี 'เมียพระอิศวร' สามารถเพิ่มได้เฉพาะ Avatar ที่มี Symbol 'เทพ' เท่านั้น");
         return;
       }
     }
-    // --- สิ้นสุดด่านตรวจพิเศษ ---
-
-    // ด่านตรวจอื่นๆ (เหมือนเดิม)
     const mainDeckTotal = mainDeck.reduce((total, card) => total + card.count, 0);
     const cardInDeck = mainDeck.find(card => card.RuleName === cardToAdd.RuleName);
     const currentCount = cardInDeck ? cardInDeck.count : 0;
@@ -237,6 +230,28 @@ const addCardToDeck = (cardToAdd) => {
       setMainDeck([]);
       setLifeDeck([]);
     }
+  };
+
+  // --- NEW: ฟังก์ชันสำหรับ Export รูปภาพ ---
+  const handleExportImage = () => {
+    const element = deckListRef.current;
+    if (!element) return;
+    if (deckName.trim() === '') {
+        alert('กรุณากรอกชื่อเด็คก่อน Export');
+        return;
+    }
+
+    html2canvas(element, {
+      backgroundColor: '#1e1e1e', // กำหนดสีพื้นหลังให้ตรงกับธีม
+      useCORS: true // อนุญาตให้โหลดรูปภาพจาก Cloudinary
+    }).then((canvas) => {
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = image;
+      // ตั้งชื่อไฟล์ตาม Deck Name
+      link.download = `decklist-${deckName.replace(/\s+/g, '_')}.png`;
+      link.click();
+    });
   };
 
   const mainDeckTotal = mainDeck.reduce((total, card) => total + card.count, 0);
@@ -345,42 +360,55 @@ const addCardToDeck = (cardToAdd) => {
           </main>
         </div>
 
-        {/* ---- REVISED: คอลัมน์ที่ 3: Deck List ---- */}
+        {/* ---- REVISED: เพิ่ม ref และ div ครอบสำหรับถ่ายรูป ---- */}
         <div className={`deck-list-wrapper ${isDeckListVisible ? 'visible' : 'hidden'}`}>
-          {/* --- NEW: ปุ่มสำหรับเปิด/ปิด Deck List --- */}
           <button 
             className="decklist-toggle-btn" 
             onClick={() => setIsDeckListVisible(!isDeckListVisible)}
           >
             {isDeckListVisible ? '❯' : '❮'}
           </button>
-
-          <div className="deck-actions">
-            <button onClick={clearAllDecks} className="clear-deck-btn">
-              Clear All 🗑️
-            </button>
-          </div>
           
-          <div className="deck-section">
-            <div className="deck-header">Main Deck ({mainDeckTotal} / {MAIN_DECK_LIMIT})</div>
-            <div className="deck-card-list">
-              {renderGroupedDeck()}
+          {/* --- div ที่จะถูกถ่ายรูป --- */}
+          <div className="deck-list-printable-area" ref={deckListRef}>
+            <input 
+              type="text"
+              className="deck-name-input"
+              placeholder="กรอกชื่อเด็ค..."
+              value={deckName}
+              onChange={(e) => setDeckName(e.target.value)}
+            />
+            <div className="deck-actions">
+              <button onClick={clearAllDecks} className="clear-deck-btn">
+                Clear All 🗑️
+              </button>
+              {/* --- NEW: ปุ่ม Export Image --- */}
+              <button onClick={handleExportImage} className="export-image-btn">
+                Export Image 📸
+              </button>
             </div>
-          </div>
-          
-          <div className="deck-section">
-            <div className="deck-header">Life Deck ({lifeDeck.length} / {LIFE_DECK_LIMIT})</div>
-            <div className="deck-card-list">
-              {lifeDeck.map((card, index) => (
-                <div key={`${card.RuleName}-${index}`} className="deck-card-item">
-                  {card.image_url && <img src={card.image_url} alt={card.Name} className="deck-card-thumbnail" />}
-                  <span className="deck-card-count">x1</span>
-                  <span className="deck-card-name">{card.Name}</span>
-                  <button onClick={() => removeCardFromLifeDeck(card)} className="delete-card-btn">
-                    🗑️
-                  </button>
-                </div>
-              ))}
+            
+            <div className="deck-section">
+              <div className="deck-header">Main Deck ({mainDeckTotal} / {MAIN_DECK_LIMIT})</div>
+              <div className="deck-card-list">
+                {renderGroupedDeck()}
+              </div>
+            </div>
+            
+            <div className="deck-section">
+              <div className="deck-header">Life Deck ({lifeDeck.length} / {LIFE_DECK_LIMIT})</div>
+              <div className="deck-card-list">
+                {lifeDeck.map((card, index) => (
+                  <div key={`${card.RuleName}-${index}`} className="deck-card-item">
+                    {card.image_url && <img src={card.image_url} alt={card.Name} className="deck-card-thumbnail" />}
+                    <span className="deck-card-count">x1</span>
+                    <span className="deck-card-name">{card.Name}</span>
+                    <button onClick={() => removeCardFromLifeDeck(card)} className="delete-card-btn hide-on-print">
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

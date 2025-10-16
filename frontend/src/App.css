@@ -234,7 +234,7 @@ body {
 
 /* (โค้ดส่วนที่เหลือจะถูกปรับสีให้เข้ากับ Dark Mode) */
 .filter-toggle-btn {
-  position: absolute; top: 16px; left: -2px; background-color: #007bff; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 101; transition: background-color 0.2s;
+  position: absolute; top: 16px; left: -3px; background-color: #007bff; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 101; transition: background-color 0.2s;
 }
 .filter-toggle-btn:hover { background-color: #0056b3; }
 .decklist-toggle-btn {
@@ -295,4 +295,56 @@ body {
 .deck-card-group { margin-bottom: 1rem; }
 .group-header {
   font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: #aaa; margin: 0 0 0.5rem 0; padding-left: 0.25rem;
+}
+.deck-list-printable-area {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* ทำให้ขยายเต็มพื้นที่ที่เหลือ */
+}
+
+.deck-name-input {
+  width: 95%;
+  padding: 10px 12px;
+  font-size: 1.1rem;
+  font-family: 'Kanit', sans-serif;
+  border-radius: 8px;
+  border: 1px solid #555;
+  background-color: #333;
+  color: #e0e0e0;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.deck-name-input::placeholder {
+  color: #888;
+}
+
+.deck-actions {
+  /* แก้ไขของเดิมให้รองรับ 2 ปุ่ม */
+  gap: 10px;
+}
+
+.export-image-btn {
+  flex-grow: 1;
+  padding: 10px 15px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background-color: #007bff;
+  border: 1px solid #0069d9;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.export-image-btn:hover {
+  background-color: #0069d9;
+}
+
+/* --- REVISED: ซ่อนปุ่มลบเมื่ออยู่ในโหมดถ่ายรูป --- */
+.deck-list-printable-area .delete-card-btn {
+  visibility: visible;
+}
+
+.deck-list-printable-area.html2canvas-container .delete-card-btn {
+  visibility: hidden; /* ซ่อนปุ่มลบเฉพาะตอนที่ html2canvas ทำงาน */
 }
