@@ -376,3 +376,24 @@ body {
 .printable-area-container .deck-card-name {
   font-size: 1rem;
 }
+.export-pdf-btn {
+  flex-grow: 1;
+  padding: 10px 15px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background-color: #6f42c1; /* สีม่วง */
+  border: 1px solid #5a32a3;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.export-pdf-btn:hover {
+  background-color: #5a32a3;
+}
+
+/* ปรับแก้ deck-actions เล็กน้อย */
+.deck-actions {
+  margin-bottom: 10px; /* ลดระยะห่างเล็กน้อย */
+}

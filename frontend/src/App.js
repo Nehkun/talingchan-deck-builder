@@ -19,6 +19,8 @@ function App() {
   const [isDeckListVisible, setIsDeckListVisible] = useState(true);
 
   const [deckName, setDeckName] = useState('');
+  // --- NEW: State สำหรับชื่อผู้เล่น ---
+  const [playerName, setPlayerName] = useState('');
   
   const deckListRef = useRef(null);
 
@@ -223,7 +225,6 @@ function App() {
     );
   };
   
-  // --- REVISED: นำฟังก์ชัน Clear All กลับมา ---
   const clearAllDecks = () => {
     if (window.confirm("คุณต้องการล้างเด็คทั้งหมดใช่หรือไม่?")) {
       setMainDeck([]);
@@ -249,6 +250,46 @@ function App() {
       link.click();
     });
   };
+
+  // --- NEW: ฟังก์ชันสำหรับ Export PDF งานแข่ง ---
+  const handleExportTournamentPDF = async () => {
+    if (deckName.trim() === '' || playerName.trim() === '') {
+      alert('กรุณากรอกชื่อเด็คและชื่อผู้เล่นก่อน Export PDF');
+      return;
+    }
+    if (mainDeckTotal !== MAIN_DECK_LIMIT || lifeDeck.length !== LIFE_DECK_LIMIT) {
+      alert(`เด็คยังไม่สมบูรณ์! Main Deck ต้องมี ${MAIN_DECK_LIMIT} ใบ และ Life Deck ต้องมี ${LIFE_DECK_LIMIT} ใบ`);
+      return;
+    }
+
+    try {
+      const deckListData = {
+        deckName: deckName,
+        playerName: playerName,
+        mainDeck: mainDeck,
+        lifeDeck: lifeDeck,
+      };
+
+      const response = await axios.post('http://127.0.0.1:8000/api/generate-tournament-pdf', deckListData, {
+        responseType: 'blob',
+      });
+      
+      const file = new Blob([response.data], { type: 'application/pdf' });
+      const fileURL = URL.createObjectURL(file);
+      
+      const link = document.createElement('a');
+      link.href = fileURL;
+      link.setAttribute('download', `decklist_${playerName.replace(/\s+/g, '_')}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาดในการ Export PDF:", error);
+      alert("ไม่สามารถสร้างไฟล์ PDF ได้ กรุณาตรวจสอบ Console");
+    }
+  };
+
 
   const mainDeckTotal = mainDeck.reduce((total, card) => total + card.count, 0);
   
@@ -346,7 +387,9 @@ function App() {
           
           <div className="deck-list-content">
             <input type="text" className="deck-name-input" placeholder="กรอกชื่อเด็ค..." value={deckName} onChange={(e) => setDeckName(e.target.value)} />
-            {/* --- REVISED: นำปุ่ม Clear All กลับมา --- */}
+            {/* --- NEW: Input สำหรับชื่อผู้เล่น --- */}
+            <input type="text" className="deck-name-input" placeholder="กรอกชื่อผู้เล่น..." value={playerName} onChange={(e) => setPlayerName(e.target.value)} />
+
             <div className="deck-actions">
               <button onClick={clearAllDecks} className="clear-deck-btn">
                 Clear All 🗑️
@@ -355,6 +398,14 @@ function App() {
                 Export Image 📸
               </button>
             </div>
+
+            {/* --- NEW: ปุ่ม Export PDF --- */}
+            <div className="deck-actions">
+              <button onClick={handleExportTournamentPDF} className="export-pdf-btn">
+                Export PDF for Tournament 📜
+              </button>
+            </div>
+            
             <div className="deck-section">
               <div className="deck-header">Main Deck ({mainDeckTotal} / {MAIN_DECK_LIMIT})</div>
               <div className="deck-card-list">
@@ -378,7 +429,6 @@ function App() {
         </div>
       </div>
 
-      {/* ส่วนที่ซ่อนไว้สำหรับสร้างรูปภาพ (ไม่มีการเปลี่ยนแปลง) */}
       <div className="printable-area-container" ref={deckListRef}>
         <div className="printable-header">
           <h2>{deckName || 'Deck List'}</h2>
