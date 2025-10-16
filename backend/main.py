@@ -11,7 +11,8 @@ import openpyxl
 
 # --- ส่วนของการตั้งค่า ---
 app = FastAPI()
-origins = ["http://localhost:3000"]
+origins = ["http://localhost:3000",
+           "https://battle-of-talingchan-frontend.vercel.app"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
